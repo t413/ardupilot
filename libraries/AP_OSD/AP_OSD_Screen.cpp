@@ -36,6 +36,7 @@
 #include <AP_Common/Location.h>
 #include <AP_BattMonitor/AP_BattMonitor.h>
 #include <AP_GPS/AP_GPS.h>
+#include <AP_Radar/AP_Radar.h>
 #include <AP_RTC/AP_RTC.h>
 #include <AP_MSP/msp.h>
 #include <AP_OLC/AP_OLC.h>
@@ -56,7 +57,7 @@
 
 #if AP_OSD_EXTENDED_LNK_STATS
 // We need to this file to access the CRSF telemetry objects which contains the link stats data
-#include <AP_RCProtocol/AP_RCProtocol_CRSF.h>   
+#include <AP_RCProtocol/AP_RCProtocol_CRSF.h>
 #endif
 
 const AP_Param::GroupInfo AP_OSD_Screen::var_info[] = {
@@ -1045,6 +1046,24 @@ const AP_Param::GroupInfo AP_OSD_Screen::var_info[] = {
 	AP_SUBGROUPINFO(rrpm, "RPM", 62, AP_OSD_Screen, AP_OSD_Setting),
 #endif
 
+#if AP_RADAR_ENABLED
+    // @Param: RADAR_EN
+    // @DisplayName: RADAR_EN
+    // @Description: Displays iNav Radar info for peer aircraft
+    // @Values: 0:Disabled,1:Enabled
+
+    // @Param: RADAR_X
+    // @DisplayName: RADAR_X
+    // @Description: Horizontal position on screen
+    // @Range: 0 29
+
+    // @Param: RADAR_Y
+    // @DisplayName: RADAR_Y
+    // @Description: Vertical position on screen
+    // @Range: 0 15
+    AP_SUBGROUPINFO(radar, "RADAR", 63, AP_OSD_Screen, AP_OSD_Setting),
+#endif
+
     AP_GROUPEND
 };
 
@@ -1435,7 +1454,7 @@ char AP_OSD_Screen::get_arrow_font_index(int32_t angle_cd)
     // if using BF font table must translate arrows
     if (check_option(AP_OSD::OPTION_BF_ARROWS)) {
         angle_cd = angle_cd > 18000? 54000 - angle_cd : 18000- angle_cd;
-    } 
+    }
     return SYMBOL(SYM_ARROW_START) + ((angle_cd + interval / 2) / interval) % SYMBOL(SYM_ARROW_COUNT);
 }
 
@@ -1467,16 +1486,16 @@ void AP_OSD_Screen::draw_bat_volt(uint8_t instance, VoltageType type, uint8_t x,
         blinkvolt = osd->warn_restvolt;
         break;
     }
-    case VoltageType::RESTING_CELL: { 
+    case VoltageType::RESTING_CELL: {
         blinkvolt = osd->warn_avgcellrestvolt;
         v = battery.voltage_resting_estimate(instance);
         FALLTHROUGH;
     }
-    case VoltageType::AVG_CELL: {         
+    case VoltageType::AVG_CELL: {
        if (type == VoltageType::AVG_CELL) { //for fallthrough of RESTING_CELL
             blinkvolt = osd->warn_avgcellvolt;
        }
-       // calculate cell count - WARNING this can be inaccurate if the LIPO/LIION  battery is far from 
+       // calculate cell count - WARNING this can be inaccurate if the LIPO/LIION  battery is far from
        // fully charged when attached and is used in this panel
        osd->max_battery_voltage.set(MAX(osd->max_battery_voltage,v));
        if (osd->cell_count > 0) {
@@ -1489,7 +1508,7 @@ void AP_OSD_Screen::draw_bat_volt(uint8_t instance, VoltageType type, uint8_t x,
        }
        break;
     }
-    }    
+    }
     if (!show_remaining_pct) {
         // Do not show battery percentage
         if (type == VoltageType::RESTING_CELL || type == VoltageType::AVG_CELL) {
@@ -1713,7 +1732,7 @@ void AP_OSD_Screen::draw_horizon(uint8_t x, uint8_t y)
     }
     // Aviation style AH instead of Betaflight FPV style
     if (inverted && check_option(AP_OSD::OPTION_AVIATION_AH)) {
-        pitch = -pitch;            
+        pitch = -pitch;
     }
     //inverted roll AH (Russian HUD emulation)
     if (check_option(AP_OSD::OPTION_INVERTED_AH_ROLL)) {
@@ -1799,6 +1818,43 @@ void AP_OSD_Screen::draw_home(uint8_t x, uint8_t y)
         backend->write(x, y, true, "%c", SYMBOL(SYM_HOME));
     }
 }
+
+#if AP_RADAR_ENABLED
+void AP_OSD_Screen::draw_radar(uint8_t x, uint8_t y)
+{
+    AP_AHRS &ahrs = AP::ahrs();
+    AP_Radar *ap_radar = AP_Radar::get_singleton();
+    if (!ap_radar) {
+        return;
+    }
+    WITH_SEMAPHORE(ahrs.get_semaphore());
+    Location loc;
+    if (ahrs.get_location(loc) && ap_radar->get_peer_healthy(_radar_peer_id)) {
+        const Location &peer_loc = ap_radar->get_peer(_radar_peer_id).location;
+        float distance = loc.get_distance(peer_loc);
+        ftype vertical_distance;
+        if (!peer_loc.get_height_above(loc, vertical_distance)) {
+            vertical_distance = 0.0f;
+        }
+        int32_t angle = wrap_360_cd(loc.get_bearing_to(peer_loc) - ahrs.yaw_sensor);
+        int32_t interval = 36000 / SYMBOL(SYM_ARROW_COUNT);
+        if (distance < 2.0f) {
+            //avoid fast rotating arrow at small distances
+            angle = 0;
+        }
+        char arrow = SYMBOL(SYM_ARROW_START) + ((angle + interval / 2) / interval) % SYMBOL(SYM_ARROW_COUNT);
+        backend->write(x, y, false, "%c%c", _radar_peer_id + 65, arrow);
+        draw_distance(x+2, y, distance);
+        draw_vdistance(x+1, y+1, vertical_distance);
+    } else {
+        backend->write(x, y, true, "%c", _radar_peer_id + 65);
+    }
+    if (AP_HAL::millis() - _radar_last_peer_change > 2000) {
+        _radar_peer_id = ap_radar->get_next_healthy_peer(_radar_peer_id);
+	_radar_last_peer_change = AP_HAL::millis();
+    }
+}
+#endif // AP_RADAR_ENABLED
 
 void AP_OSD_Screen::draw_heading(uint8_t x, uint8_t y)
 {
@@ -1948,7 +2004,7 @@ void AP_OSD_Screen::draw_wind(uint8_t x, uint8_t y)
             angle = M_PI;
         }
         angle = angle + atan2f(v.y, v.x) - ahrs.get_yaw_rad();
-    } 
+    }
     draw_speed(x + 1, y, angle, length);
 
 #else
@@ -2004,6 +2060,27 @@ void AP_OSD_Screen::draw_vspeed(uint8_t x, uint8_t y)
     } else {
         const char *fmt = osd->units == AP_OSD::UNITS_AVIATION ? "%c%4d%c" : "%c%2d%c";
         backend->write(x, y, false, fmt, sym, (int)roundf(vs_scaled), u_icon(VSPEED));
+    }
+}
+
+void AP_OSD_Screen::draw_vdistance(uint8_t x, uint8_t y, float distance)
+{
+    char sym;
+    if (distance > 25.0f) {
+        sym = SYMBOL(SYM_UP_UP);
+    } else if (distance >=0.0f) {
+        sym = SYMBOL(SYM_UP);
+    } else if (distance >= -25.0f) {
+        sym = SYMBOL(SYM_DOWN);
+    } else {
+        sym = SYMBOL(SYM_DOWN_DOWN);
+    }
+    float distance_scaled = u_scale(ALTITUDE, fabsf(distance));
+    if ((osd->units != AP_OSD::UNITS_AVIATION) && (distance_scaled < 9.95f)) {
+        backend->write(x, y, false, "%c%.1f%c", sym, (float)distance_scaled, u_icon(DISTANCE));
+    } else {
+        const char *fmt = osd->units == AP_OSD::UNITS_AVIATION ? "%c%4d%c" : "%c%2d%c";
+        backend->write(x, y, false, fmt, sym, (int)roundf(distance_scaled), u_icon(DISTANCE));
     }
 }
 
@@ -2153,12 +2230,12 @@ void AP_OSD_Screen::draw_rc_active_antenna(uint8_t x, uint8_t y)
 }
 
 void AP_OSD_Screen::draw_rc_lq(uint8_t x, uint8_t y)
-{    
+{
     const int16_t lqv = AP::RC().get_link_status().link_quality;
     const bool blink = lqv < osd->warn_lq;
     bool btfl = is_btfl_fonts();
     bool prefix_rf = check_option(AP_OSD::OPTION_RF_MODE_ALONG_WITH_LQ);
-    const int16_t rf_mode = AP::crsf()->get_link_status().rf_mode;    
+    const int16_t rf_mode = AP::crsf()->get_link_status().rf_mode;
     if (lqv < 0) {
         if (btfl) {
             if (prefix_rf) {
@@ -2173,9 +2250,9 @@ void AP_OSD_Screen::draw_rc_lq(uint8_t x, uint8_t y)
                 backend->write(x, y, blink, "%c--", SYMBOL(SYM_LQ));
             }
         }
-    } else {    
+    } else {
         if (btfl) {
-            if (prefix_rf) {                    
+            if (prefix_rf) {
                 backend->write(x, y, blink, "LQ%2d:%2d", rf_mode, lqv);
             } else {
                 backend->write(x, y, blink, "LQ%2d", lqv);
@@ -2646,6 +2723,9 @@ void AP_OSD_Screen::draw(void)
     DRAW_SETTING(rc_snr);
     DRAW_SETTING(rc_active_antenna);
     DRAW_SETTING(rc_lq);
+#endif
+#if AP_RADAR_ENABLED
+    DRAW_SETTING(radar);
 #endif
 }
 #endif

@@ -108,11 +108,12 @@ BUILD_OPTIONS = [
     Feature('Notify', 'NOTIFY_NEOPIXEL', 'AP_NOTIFY_NEOPIXEL_ENABLED', 'Enable NeoPixel LED strings', 0, None),  # noqa
 
     Feature('MSP', 'MSP', 'HAL_MSP_ENABLED', 'Enable MSP telemetry and MSP OSD', 0, 'OSD'),
-    Feature('MSP', 'MSP_SENSORS', 'HAL_MSP_SENSORS_ENABLED', 'Enable MSP sensors', 0, 'MSP_GPS,MSP_BARO,MSP_COMPASS,MSP_AIRSPEED,MSP,MSP_OPTICALFLOW,MSP_RANGEFINDER,OSD'),   # NOQA: E501
+    Feature('MSP', 'MSP_SENSORS', 'HAL_MSP_SENSORS_ENABLED', 'Enable MSP Sensors', 0, 'MSP_GPS,MSP_BARO,MSP_COMPASS,MSP_AIRSPEED,MSP,MSP_OPTICALFLOW,MSP_RANGEFINDER,MSP_RADAR,OSD'),   # NOQA: E501
     Feature('MSP', 'MSP_GPS', 'HAL_MSP_GPS_ENABLED', 'Enable MSP GPS', 0, 'MSP,OSD'),
     Feature('MSP', 'MSP_COMPASS', 'AP_COMPASS_MSP_ENABLED', 'Enable MSP compass', 0, 'MSP,OSD'),
     Feature('MSP', 'MSP_OPTICALFLOW', 'HAL_MSP_OPTICALFLOW_ENABLED', 'Enable MSP OpticalFlow', 0, 'MSP,OSD,OPTICALFLOW'), # also OPTFLOW dep   # NOQA: E501
     Feature('MSP', 'MSP_RANGEFINDER', 'HAL_MSP_RANGEFINDER_ENABLED', 'Enable MSP rangefinder', 0, 'MSP,OSD,RANGEFINDER'),
+    Feature('MSP', 'MSP_RADAR', 'HAL_MSP_RADAR_ENABLED', 'Enable MSP iNav Radar', 0, 'MSP,OSD,RADAR'),   # NOQA: E501
     Feature('MSP', 'MSP_DISPLAYPORT', 'HAL_WITH_MSP_DISPLAYPORT', 'Enable MSP DisplayPort OSD (aka CANVAS MODE)', 0, 'MSP,OSD'),   # NOQA: E501
     Feature('MSP', 'DISPLAYPORT_INAV_FONTS', 'AP_MSP_INAV_FONTS_ENABLED', 'Enable INAV Fonts Translation for DisplayPort', 0, 'MSP_DISPLAYPORT,MSP,OSD'),  # NOQA: E501
 
@@ -399,6 +400,7 @@ BUILD_OPTIONS = [
     Feature('Sensors', 'BEACON', 'AP_BEACON_ENABLED', 'Enable Beacon', 0, None),
     Feature('Sensors', 'GPS_MOVING_BASELINE', 'GPS_MOVING_BASELINE', 'Enable GPS Moving Baseline', 0, None),
     Feature('Sensors', 'IMU_ON_UART', 'AP_SERIALMANAGER_IMUOUT_ENABLED', 'Enable Send raw IMU data on a serial port', 0, None), # NOQA: E501
+    Feature('Sensors', 'RADAR', 'AP_RADAR_ENABLED', 'Enable iNav Radar', 0, None),
 
     Feature('IMU', 'TEMPCAL', 'HAL_INS_TEMPERATURE_CAL_ENABLE', 'Enable IMU Temperature calibration', 0, None),
     Feature('IMU', 'HarmonicNotches', 'AP_INERTIALSENSOR_HARMONICNOTCH_ENABLED', 'Enable InertialSensor harmonic notch filters', 0, None),  # noqa

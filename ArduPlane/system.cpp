@@ -161,6 +161,12 @@ void Plane::init_ardupilot()
     }
 #endif
 
+#if AP_RADAR_ENABLED
+    if (radar.enabled()) {
+        radar.init();
+    }
+#endif
+
 #if AC_PRECLAND_ENABLED
     // scheduler table specifies 400Hz, but we can call it no faster
     // than the scheduler loop rate:

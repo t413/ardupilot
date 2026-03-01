@@ -98,6 +98,7 @@ class ExtractFeatures(BuildScriptBase):
             ('HAL_WITH_MSP_DISPLAYPORT', r'AP_OSD_MSP_DisplayPort::init\b',),
             ('AP_MSP_INAV_FONTS_ENABLED', r'AP_OSD_MSP_DisplayPort::write_INAV\b',),
 
+            ('AP_RADAR_ENABLED', 'AP_Radar::AP_Radar',),
 
             ('AP_BATTERY_{type}_ENABLED', r'AP_BattMonitor_(?P<type>.*)::init\b',),
             ('AP_BATTERY_ESC_TELEM_OUTBOUND_ENABLED', r'AP_BattMonitor_Backend::update_esc_telem_outbound\b',),

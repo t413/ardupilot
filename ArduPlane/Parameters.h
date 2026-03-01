@@ -371,6 +371,7 @@ public:
         k_param_mode_autoland,
         k_param__gcs,
 
+        k_param_radar,
     };
 
     AP_Int16 format_version;
